@@ -31,30 +31,32 @@ class WeiboHotScraper:
         if not os.path.exists(self.OUTPUT_DIR):
             os.makedirs(self.OUTPUT_DIR)
 
-    def fetch_hot_titles(self):
+    def fetch_hot_titles(self) -> list:
         """获取热榜标题"""
         try:
             response = requests.get(
-                self.URL, 
+                self.URL,
                 headers=self.HEADERS,
                 timeout=self.TIMEOUT
             )
             response.raise_for_status()  # 检查HTTP错误
-           
+
             return self._parse_html(response.text)
         except requests.exceptions.RequestException as e:
-            print(f"请求失败: {str(e)}")
+            logger.error(f"请求失败: {str(e)}")
             return []
         except Exception as e:
-            print(f"未知错误: {str(e)}")
+            logger.error(f"未知错误: {str(e)}")
             return []
-
-    def _parse_html(self, html_content):
+    def _parse_html(self, html_content: str) -> list:
         """解析HTML内容"""
         try:
             soup = BeautifulSoup(html_content, 'html.parser')
-            print(soup)
             rows = soup.select('table tbody tr')
+            if not rows:
+                logger.warning("未找到表格行数据，页面结构可能已改变")
+                return []
+                
             titles = []
             
             for row in rows:
@@ -62,11 +64,11 @@ class WeiboHotScraper:
                 if title_element:
                     titles.append(title_element.text.strip())
             
+            logger.info(f"成功解析到 {len(titles)} 个热榜标题")
             return titles
         except Exception as e:
             logger.error(f"HTML解析失败: {str(e)}")
             return []
-
     def save_to_file(self, titles):
         """保存数据到本地文件"""
         try:
